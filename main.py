@@ -3,7 +3,7 @@ import sys
 import random
 
 pygame.init()
-screen = pygame.display.set_mode((1000, 800))
+screen = pygame.display.set_mode((1000, 900))
 pygame.display.set_caption("Project 3: Monster Ambush")
 clock = pygame.time.Clock()
 font = pygame.font.Font(None, 40)
@@ -33,6 +33,8 @@ MAX_ROUNDS = 10
 def reset_game():
     return {
         "score": 0,
+        "ai_score": 0,
+        "ai_prediction": None,
         "round_number": 0,
         "current_state": random.randint(0, 3), # monster starts somewhere random
         "from_state": None,
@@ -53,6 +55,9 @@ while running:
             if event.key in key_map and game["round_number"] < MAX_ROUNDS:
                 game["ambush_state"] = key_map[event.key]
                 game["from_state"] = game["current_state"]
+
+                row = transition_matrix[game["current_state"]]
+                game["ai_prediction"] = row.index(max(row))
  
                 game["next_state"] = random.choices(
                     range(4),
@@ -65,6 +70,9 @@ while running:
                     game["message"] = "Ambush successful!"
                 else:
                     game["message"] = "The monster escaped!"
+
+                if game["ai_prediction"] == game["next_state"]:
+                    game["ai_score"] += 1
  
                 game["current_state"] = game["next_state"]
                 game["round_number"] += 1
@@ -91,10 +99,11 @@ while running:
     else:
         lines.append(f"Current Location: {states[game['from_state']]}")
         lines.append(f"Your Ambush: {states[game['ambush_state']]}")
+        lines.append(f"AI Boss Would Ambush: {states[game['ai_prediction']]}")
         lines.append(f"Monster Moved To: {states[game['next_state']]}")
     lines.append(game["message"])
-    lines.append(f"Score: {game['score']} / {game['round_number']}   (Round {game['round_number']} of {MAX_ROUNDS})")
- 
+    lines.append(f"Human Prediction: {game['score']}/{game['round_number']}   AI Prediction: {game['ai_score']}/{game['round_number']}   (Round {game['round_number']} of {MAX_ROUNDS})") 
+    
     for line in lines:
         text = font.render(line, True, (255, 255, 255))
         screen.blit(text, (20, y))
@@ -102,11 +111,16 @@ while running:
  
     # game over message
     if game["round_number"] >= MAX_ROUNDS:
-        over = big_font.render(
-            f"GAME OVER! Final score: {game['score']} / {MAX_ROUNDS}",
-            f"Press R to play again",
+        if game["score"] > game["ai_score"]:
+            winner = "You beat the AI!"
+        elif game["score"] < game["ai_score"]:
+            winner = "The AI wins!"
+        else:
+            winner = "It's a tie!"
+        over = font.render(
+            f"GAME OVER! You {game['score']}/{MAX_ROUNDS}, AI {game['ai_score']}/{MAX_ROUNDS}. {winner} Press R to restart",
             True, (255, 80, 80))
-        screen.blit(over, (20, 750))
+        screen.blit(over, (20, 860))
 
     pygame.display.flip()
     clock.tick(60)
